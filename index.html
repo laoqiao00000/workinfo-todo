@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5f7">
+<title>工作信息 · 会议笔记待办</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1b2333;--sub:#8a92a6;--line:#e8eaf0;--pri:#2f6bff;--pri-bg:#eef3ff;--green:#0aa679;--green-bg:#e6f7f1;--orange:#f59e0b;--red:#e5484d;--radius:14px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:#e9ebef;color:var(--ink);font-size:15px;line-height:1.6}
+body.lock{overflow:hidden}
+#app{max-width:720px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:0 0 40px rgba(27,35,51,.06)}
+/* ===== 头部 ===== */
+header{position:sticky;top:0;z-index:30;background:rgba(244,245,247,.94);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;border-bottom:1px solid var(--line)}
+.h-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+h1{font-size:20px;font-weight:700;letter-spacing:.2px}
+.sub{font-size:12.5px;color:var(--sub);margin-top:2px}
+.h-actions{display:flex;gap:8px;padding-top:2px}
+.icon-btn{width:36px;height:36px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:19px;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;line-height:1}
+.icon-btn:active{background:#f0f2f6}
+.progress{height:5px;border-radius:4px;background:#e3e7ef;margin-top:10px;overflow:hidden}
+.progress i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#2f6bff,#0aa679);width:0;transition:width .4s}
+/* ===== 搜索与筛选 ===== */
+.search-wrap{padding:12px 16px 2px}
+.search-wrap input{width:100%;height:40px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:0 14px;font-size:14.5px;outline:none;color:var(--ink)}
+.search-wrap input:focus{border-color:var(--pri)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:6px 13px;border-radius:20px;background:#fff;border:1px solid var(--line);font-size:13px;color:#4a5268;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.chip .n{opacity:.55;font-size:12px;margin-left:3px}
+.chips.last{padding-bottom:8px}
+/* ===== 提示条 ===== */
+.banner{margin:12px 16px 0;background:var(--pri-bg);border:1px solid #d7e3ff;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#33508f;display:flex;gap:10px;align-items:flex-start;line-height:1.55}
+.banner span{flex:1}
+.banner button{flex:none;border:none;background:none;color:var(--pri);font-size:12.5px;font-weight:700;cursor:pointer;padding:0 2px}
+/* ===== 列表 ===== */
+main{padding-bottom:44px}
+.list-meta{padding:10px 18px 2px;font-size:12px;color:var(--sub)}
+#list{padding:8px 16px 0}
+.card{display:flex;gap:12px;background:var(--card);border-radius:var(--radius);padding:13px 14px;box-shadow:0 1px 2px rgba(27,35,51,.05);margin-bottom:10px;cursor:pointer;transition:transform .12s}
+.card:active{transform:scale(.985)}
+.cb{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #c4cad9;margin-top:3px;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer}
+.cb.on{background:var(--green);border-color:var(--green)}
+.cb svg{display:none;width:11px;height:11px}
+.cb.on svg{display:block}
+.c-mid{flex:1;min-width:0}
+.c-name{font-weight:600;font-size:15.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.c-name .txt.done{text-decoration:line-through;color:var(--sub)}
+.c-note{font-size:12.5px;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.c-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;font-size:11px;padding:1.5px 8px;border-radius:20px;background:#f0f2f6;color:#5b6478;white-space:nowrap}
+.tag.sum{background:var(--green-bg);color:var(--green);font-weight:600}
+.tag.done-tag{background:var(--green-bg);color:var(--green)}
+.chev{flex:none;color:#c4cad9;margin-top:4px;font-size:18px}
+.empty{text-align:center;color:var(--sub);padding:56px 20px;font-size:14px}
+.empty .btn{margin:14px auto 0}
+/* ===== 按钮 ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:14.5px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.danger{color:var(--red);border-color:#f3c7c9;background:#fff5f5}
+.btn.wide{width:100%}
+.btnrow{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.btnrow .btn{flex:1;min-width:120px}
+/* ===== 弹层 ===== */
+.overlay{position:fixed;inset:0;background:rgba(15,19,28,.45);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+.overlay.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,105%);z-index:50;background:#fff;border-radius:18px 18px 0 0;transition:transform .32s cubic-bezier(.32,.72,.33,1);max-height:88vh;width:100%;max-width:720px;display:flex;flex-direction:column}
+.sheet.show{transform:translate(-50%,0)}
+.grab{width:38px;height:4.5px;border-radius:3px;background:#dfe3ec;margin:8px auto 2px;flex:none}
+.sheet-head{padding:8px 18px 12px;border-bottom:1px solid var(--line);flex:none}
+.drow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.drow .tags{display:flex;gap:6px;flex-wrap:wrap}
+.x{width:30px;height:30px;border-radius:50%;border:none;background:#f0f2f6;color:#5b6478;font-size:14px;cursor:pointer;flex:none}
+.sheet-h2{font-size:19px;font-weight:700;margin-top:8px;word-break:break-word}
+.orig{margin-top:8px;font-size:13px;background:#f7f8fa;border-radius:10px;padding:8px 10px;color:#4a5268;word-break:break-word}
+.orig b{display:block;font-size:11px;color:var(--sub);font-weight:600;margin-bottom:2px}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 18px calc(env(safe-area-inset-bottom) + 24px);min-height:0}
+.sec{margin-top:16px}
+.sec-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+.sec-title::before{content:"";width:3.5px;height:14px;border-radius:2px;background:var(--pri)}
+.steps{font-size:12px;color:var(--sub);margin:6px 0 8px;background:#f7f8fa;border-radius:8px;padding:6px 10px;line-height:1.7}
+.paste-label{font-size:12.5px;color:var(--sub);margin:12px 0 6px}
+.ta{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;font-family:inherit;line-height:1.55;resize:vertical;min-height:74px;outline:none;color:var(--ink);background:#fff}
+.ta:focus{border-color:var(--pri)}
+/* ===== 表单 ===== */
+.f-label{font-size:12.5px;color:var(--sub);font-weight:600;margin:12px 0 5px}
+select{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;padding:0 10px;font-size:14.5px;background:#fff;color:var(--ink);outline:none}
+select:focus{border-color:var(--pri)}
+input[type=text]{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:14.5px;outline:none;background:#fff;color:var(--ink)}
+input[type=text]:focus{border-color:var(--pri)}
+/* ===== 菜单 ===== */
+.menu-btn{display:flex;width:100%;align-items:center;gap:8px;min-height:48px;padding:0 14px;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:14.5px;color:var(--ink);cursor:pointer;margin-top:10px;font-weight:500}
+.menu-btn:active{background:#f7f8fa}
+.menu-btn.danger{color:var(--red);border-color:#f3c7c9}
+.menu-note{font-size:12px;color:var(--sub);margin-top:14px;line-height:1.6}
+.help{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#f9fafb}
+.help summary{font-weight:600;font-size:14px;cursor:pointer}
+.help-body{font-size:12.5px;color:#4a5268;margin-top:8px}
+.help-body p{margin-bottom:6px}
+/* ===== 提示 ===== */
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%) translateY(20px);background:rgba(27,35,51,.92);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:24px;opacity:0;transition:all .25s;z-index:99;pointer-events:none;max-width:80vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="h-row">
+      <div>
+        <h1>工作信息 · 待办</h1>
+        <div class="sub" id="statText"></div>
+      </div>
+      <div class="h-actions">
+        <button class="icon-btn" id="btnAdd" aria-label="新增条目">＋</button>
+        <button class="icon-btn" id="btnMenu" aria-label="菜单">⋯</button>
+      </div>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+  </header>
+  <main>
+    <div class="search-wrap"><input id="search" type="text" placeholder="搜索公司 / 事项 / 已存总结…" autocomplete="off"></div>
+    <div class="chips" id="catChips"></div>
+    <div class="chips" id="sectorChips" style="display:none"></div>
+    <div class="chips last" id="statusChips"></div>
+    <div class="banner" id="tipBanner" style="display:none">
+      <span>数据（勾选、AI 总结、备注）保存在本机浏览器，清除浏览器数据会丢失；换设备请先用「⋯ → 导出数据」备份。</span>
+      <button id="tipClose">知道了</button>
+    </div>
+    <div class="list-meta" id="listMeta"></div>
+    <div id="list"></div>
+  </main>
+</div>
+
+<!-- 遮罩 -->
+<div class="overlay" id="overlay"></div>
+
+<!-- 详情弹层（动态渲染） -->
+<div class="sheet" id="detailSheet"></div>
+
+<!-- 新增条目弹层 -->
+<div class="sheet" id="addSheet">
+  <div class="grab"></div>
+  <div class="sheet-head">
+    <div class="drow">
+      <h2 class="sheet-h2" style="margin-top:0">新增条目</h2>
+      <button class="x" data-close>✕</button>
+    </div>
+  </div>
+  <div class="sheet-body">
+    <div class="f-label" style="margin-top:0">类别</div>
+    <select id="addCat">
+      <option value="company">公司标的</option>
+      <option value="question">待查事项</option>
+      <option value="viewpoint">观点认知</option>
+      <option value="people">人脉联络</option>
+      <option value="tech">技术主题</option>
+    </select>
+    <div class="f-label">名称（公司 / 问题 / 观点 / 人名 / 主题）</div>
+    <input type="text" id="addName" placeholder="例如：某某科技">
+    <div id="sectorRow">
+      <div class="f-label">所属行业（公司类）</div>
+      <select id="addSector"></select>
+    </div>
+    <div class="f-label">备注（来源、线索、背景）</div>
+    <textarea class="ta" id="addNote" rows="3" placeholder="记录相关信息…"></textarea>
+    <div class="btnrow"><button class="btn pri wide" id="addSave">保存条目</button></div>
+  </div>
+</div>
+
+<!-- 设置菜单弹层 -->
+<div class="sheet" id="menuSheet">
+  <div class="grab"></div>
+  <div class="sheet-head">
+    <div class="drow">
+      <h2 class="sheet-h2" style="margin-top:0">设置与数据</h2>
+      <button class="x" data-close>✕</button>
+    </div>
+  </div>
+  <div class="sheet-body">
+    <details class="help">
+      <summary>使用说明</summary>
+      <div class="help-body">
+        <p>· 页面按 To-do 形式整理了会议笔记（来源：工作信息 PDF），分为公司标的、待查事项、观点认知、人脉联络、技术主题五类。</p>
+        <p>· 点击条目进入详情：可标记完成、生成 AI 总结提示词、粘贴保存总结、写补充备注。</p>
+        <p>· AI 总结流程：① 复制提示词 → ② 打开豆包（或其他 AI，如 DeepSeek）粘贴提问 → ③ 复制 AI 回答 → ④ 回到本页粘贴保存。</p>
+        <p>· 右上角「＋」可新增条目；卡片左侧圆圈可直接勾选完成。</p>
+        <p>· 所有勾选、总结、备注保存在本机浏览器（localStorage），不上传服务器，多设备间不自动同步；换设备请导出 / 导入。</p>
+      </div>
+    </details>
+    <button class="menu-btn" data-menu="export">导出数据（JSON 备份）</button>
+    <button class="menu-btn" data-menu="import">导入数据（从备份恢复）</button>
+    <button class="menu-btn danger" data-menu="reset">重置全部数据（清除勾选 / 总结 / 备注 / 自建条目）</button>
+    <p class="menu-note">说明：本页为静态网页应用，数据保存在当前设备的浏览器本地存储中，不上传服务器。原始条目整理自「工作信息」会议笔记 PDF。</p>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ===== 基础数据：整理自《工作信息》会议笔记 PDF ===== */
+const CAT_NAMES={company:'公司标的',question:'待查事项',viewpoint:'观点认知',people:'人脉联络',tech:'技术主题'};
+const SECTORS=['美妆个护','AI/大模型','机器人','半导体/光通信','食品供应链','跨境品牌','游戏/健身','机构/平台','其他'];
+const BASE=[
+/* --- 公司标的 · 美妆个护 --- */
+{id:'c01',cat:'company',sector:'美妆个护',name:'蒂洛薇',note:'蒂洛薇，底妆品牌'},
+{id:'c02',cat:'company',sector:'美妆个护',name:'可拉因',note:'可拉因；线粒体（技术方向待确认）'},
+{id:'c03',cat:'company',sector:'美妆个护',name:'苔序',note:'苔序？10 月刚上（名称待确认）'},
+{id:'c04',cat:'company',sector:'美妆个护',name:'野马打品团队',note:'野马打品团队；抖音运营能力强'},
+{id:'c05',cat:'company',sector:'美妆个护',name:'Fan Beauty（范冰冰）',note:'女性单品：范冰冰（品牌待确认）'},
+{id:'c06',cat:'company',sector:'美妆个护',name:'Olive Young',note:'韩国 olivis young？美妆连锁；Better（拼写与所指待确认）'},
+{id:'c07',cat:'company',sector:'美妆个护',name:'倍轻松',note:'倍轻松（按摩个护）'},
+{id:'c08',cat:'company',sector:'美妆个护',name:'妙界',note:'妙界（按摩个护）'},
+{id:'c09',cat:'company',sector:'美妆个护',name:'SKG',note:'SKG（按摩个护）'},
+{id:'c10',cat:'company',sector:'美妆个护',name:'左点',note:'左点动态（按摩个护）'},
+{id:'c11',cat:'company',sector:'美妆个护',name:'菠萝君',note:'菠萝君（按摩个护）'},
+{id:'c12',cat:'company',sector:'美妆个护',name:'云脉',note:'云脉（按摩个护相关）'},
+{id:'c13',cat:'company',sector:'美妆个护',name:'美国筋膜枪品牌（名称待查）',note:'bobby bread？hibreast？美国的筋膜枪品牌（名称待确认）'},
+/* --- 公司标的 · AI/大模型 --- */
+{id:'c14',cat:'company',sector:'AI/大模型',name:'生数科技',note:'生数，Vivix（视频生成大模型）'},
+{id:'c15',cat:'company',sector:'AI/大模型',name:'Viggle',note:'Viggle（视频生成）'},
+{id:'c16',cat:'company',sector:'AI/大模型',name:'鹿鸣',note:'鹿鸣 ASOP（具体信息待确认）'},
+{id:'c17',cat:'company',sector:'AI/大模型',name:'Lovable',note:'lovable（AI 应用开发）'},
+{id:'c18',cat:'company',sector:'AI/大模型',name:'aippy',note:'aippy'},
+{id:'c19',cat:'company',sector:'AI/大模型',name:'loopit',note:'loopit'},
+{id:'c20',cat:'company',sector:'AI/大模型',name:'rezona',note:'rezona'},
+{id:'c21',cat:'company',sector:'AI/大模型',name:'leonardo.ai',note:'leonardo.ai（AI 图像）'},
+{id:'c22',cat:'company',sector:'AI/大模型',name:'liblib 哩布哩布',note:'liblib（AI 模型社区）'},
+{id:'c23',cat:'company',sector:'AI/大模型',name:'POE',note:'POE 大语言模型聚合'},
+{id:'c24',cat:'company',sector:'AI/大模型',name:'Canva',note:'海报平台 Canva，月活 9 亿'},
+{id:'c25',cat:'company',sector:'AI/大模型',name:'Flova',note:'字节出来的团队做的 Flova'},
+{id:'c26',cat:'company',sector:'AI/大模型',name:'oii oii',note:'字节出来的团队做的 oii oii'},
+{id:'c27',cat:'company',sector:'AI/大模型',name:'Figma',note:'Figma Hypit，higgstied？（插件名待确认）'},
+{id:'c28',cat:'company',sector:'AI/大模型',name:'astrocade',note:'astrocade，李飞飞（世界模型游戏）'},
+{id:'c29',cat:'company',sector:'AI/大模型',name:'einsiaAI',note:'einsiaAI，联系人 Tang'},
+/* --- 公司标的 · 机器人 --- */
+{id:'c30',cat:'company',sector:'机器人',name:'银河通用',note:'银河通用（具身智能）'},
+{id:'c31',cat:'company',sector:'机器人',name:'极智嘉',note:'极智嘉（仓储机器人）'},
+{id:'c32',cat:'company',sector:'机器人',name:'自变量',note:'自变量（机器人）'},
+{id:'c33',cat:'company',sector:'机器人',name:'本溯智能',note:'五源：本溯智能'},
+{id:'c34',cat:'company',sector:'机器人',name:'大福 Daifuku',note:'大福：日本半导体自动化，苏州工厂'},
+/* --- 公司标的 · 半导体/光通信 --- */
+{id:'c35',cat:'company',sector:'半导体/光通信',name:'星钥',note:'星钥（光通信）'},
+{id:'c36',cat:'company',sector:'半导体/光通信',name:'三安光电',note:'三安（化合物半导体）'},
+{id:'c37',cat:'company',sector:'半导体/光通信',name:'兆驰股份',note:'兆驰'},
+{id:'c38',cat:'company',sector:'半导体/光通信',name:'华灿光电',note:'华灿'},
+{id:'c39',cat:'company',sector:'半导体/光通信',name:'思特威',note:'思特威（CIS 图像传感器）'},
+{id:'c40',cat:'company',sector:'半导体/光通信',name:'北京赛微电子',note:'北京赛微 MEMS 代工；1db 差损？光学的'},
+{id:'c41',cat:'company',sector:'半导体/光通信',name:'Lumentum',note:'lumentus（应为 Lumentum，光模块）'},
+{id:'c42',cat:'company',sector:'半导体/光通信',name:'Polatis',note:'polatis：凌云光代理（光开关）'},
+{id:'c43',cat:'company',sector:'半导体/光通信',name:'曦智科技',note:'曦智上市（光计算）；氮化硅波导'},
+{id:'c44',cat:'company',sector:'半导体/光通信',name:'九维光子',note:'九维光子'},
+{id:'c45',cat:'company',sector:'半导体/光通信',name:'摩尔线程',note:'摩尔线程（GPU）'},
+{id:'c46',cat:'company',sector:'半导体/光通信',name:'寒武纪',note:'寒武纪（AI 芯片）'},
+{id:'c47',cat:'company',sector:'半导体/光通信',name:'燧原科技',note:'燧原（AI 芯片）'},
+{id:'c48',cat:'company',sector:'半导体/光通信',name:'沐曦',note:'沐曦（GPU）'},
+{id:'c49',cat:'company',sector:'半导体/光通信',name:'天数智芯',note:'天数（GPU）'},
+/* --- 公司标的 · 食品供应链 --- */
+{id:'c50',cat:'company',sector:'食品供应链',name:'科拓生物',note:'科拓（益生菌）'},
+{id:'c51',cat:'company',sector:'食品供应链',name:'科汉森',note:'科汉森（益生菌，丹麦 Chr. Hansen）'},
+{id:'c52',cat:'company',sector:'食品供应链',name:'卫康生物',note:'卫康（益生菌生产商）'},
+{id:'c53',cat:'company',sector:'食品供应链',name:'BioE',note:'BioE？akk 菌（待确认）'},
+{id:'c54',cat:'company',sector:'食品供应链',name:'重庆米海通',note:'软糖供应链：重庆米海通'},
+{id:'c55',cat:'company',sector:'食品供应链',name:'山东味可鲜',note:'山东味可鲜，李若桃，楼下酸奶'},
+/* --- 公司标的 · 跨境品牌 --- */
+{id:'c56',cat:'company',sector:'跨境品牌',name:'Jackery 电小二',note:'jackery 电小二（户外电源）'},
+{id:'c57',cat:'company',sector:'跨境品牌',name:'锋味派',note:'锋味派：谦贞/英皇；谢霆锋'},
+{id:'c58',cat:'company',sector:'跨境品牌',name:'伯希和 PELLIOT',note:'伯希和：今年线下很好'},
+{id:'c59',cat:'company',sector:'跨境品牌',name:'Ransom 家具',note:'美国有一个家具公司叫 ransom，查一下'},
+{id:'c60',cat:'company',sector:'跨境品牌',name:'达芬奇',note:'海外咖啡辅料品牌：达芬奇'},
+{id:'c61',cat:'company',sector:'跨境品牌',name:'莫林 Monin',note:'莫林，法国公司，大概 10 亿左右营收的中小企业'},
+{id:'c62',cat:'company',sector:'跨境品牌',name:'Fabric',note:'海外咖啡辅料品牌：Fabric（待确认）'},
+/* --- 公司标的 · 游戏/健身 --- */
+{id:'c63',cat:'company',sector:'游戏/健身',name:'鹰角网络',note:'Kuro 鹰角？（关联待确认）'},
+{id:'c64',cat:'company',sector:'游戏/健身',name:'Garena',note:'gerena（应为 Garena，拼写待确认）'},
+{id:'c65',cat:'company',sector:'游戏/健身',name:'吉他英雄',note:'吉他英雄游戏化硬件（对标方向）'},
+{id:'c66',cat:'company',sector:'游戏/健身',name:'Orange Theory',note:'美国公司叫 Orange Theory 科技健身公司'},
+/* --- 公司标的 · 机构/平台 --- */
+{id:'c67',cat:'company',sector:'机构/平台',name:'孚腾资本',note:'孚腾资本'},
+{id:'c68',cat:'company',sector:'机构/平台',name:'水木清华种子基金',note:'水木清华种子基金，王学晖'},
+{id:'c69',cat:'company',sector:'机构/平台',name:'合合信息',note:'合合信息，上海市政府统一购买算力的平台，沪产卡'},
+{id:'c70',cat:'company',sector:'机构/平台',name:'模速空间',note:'模速空间项目（上海 AI 生态）'},
+{id:'c71',cat:'company',sector:'机构/平台',name:'港中旅',note:'港中旅陶，下次可以约'},
+/* --- 待查事项 --- */
+{id:'q01',cat:'question',name:'TikTok（TK）的投放比例是多少？',note:'关联认知：亚马逊站内投放比率只占 41%，是个很少的数'},
+{id:'q02',cat:'question',name:'美国家具公司 Ransom 查证',note:'美国有一个家具公司叫 ransom，查一下'},
+{id:'q03',cat:'question',name:'亚马逊工具房品牌与类别 Kitter 查证',note:'亚马逊上工具房的这个品牌，这个类别好像叫 Kitter，对吗？'},
+{id:'q04',cat:'question',name:'战略解码 OGSM 是什么管理学指标？',note:'战略解码 OGSM，这是什么管理学指标？'},
+{id:'q05',cat:'question',name:'英伟达 leaf 层 / spine 层架构',note:'英伟达 leaf 层，spy 层？（可能是 leaf/spine 网络架构）'},
+{id:'q06',cat:'question',name:'1db 差损（光学）是什么？',note:'1db 差损？光学的（可能是 1dB 插损）'},
+{id:'q07',cat:'question',name:'硅光方案：VCSEL vs GaN 如何选择',note:'硅光方案，vcsel vs GaN'},
+{id:'q08',cat:'question',name:'光通信展与蔡祖泉的关系',note:'光通信展，蔡祖泉（上海照明企业？）'},
+{id:'q09',cat:'question',name:'抖音最大流量主播确认',note:'抖音最大流量的主播；锦堂？董宇辉？'},
+{id:'q10',cat:'question',name:'咖啡辅料品牌 Fabric 查证',note:'海外品牌做咖啡辅料的好像是达芬奇、莫林、Fabric，Fabric 待确认'},
+/* --- 观点认知 --- */
+{id:'v01',cat:'viewpoint',name:'亚马逊站内投放比率只占 41%，是个很少的数',note:'来自跨境电商交流'},
+{id:'v02',cat:'viewpoint',name:'Wayfair：室内更强、定位更高端，户外 3~7 月是旺季',note:'家居跨境电商平台认知'},
+{id:'v03',cat:'viewpoint',name:'户外沙发的定义就是藤编的户外沙发',note:'品类定义认知'},
+{id:'v04',cat:'viewpoint',name:'代理商目前的问题：大厂条件太高',note:'来自个护器械渠道交流'},
+{id:'v05',cat:'viewpoint',name:'可以从天猫小二处了解品牌',note:'品牌调研信息渠道'},
+{id:'v06',cat:'viewpoint',name:'野马打品团队：抖音运营能力强',note:'代运营能力评价'},
+{id:'v07',cat:'viewpoint',name:'伯希和：今年线下很好',note:'户外品牌线下渠道观察'},
+{id:'v08',cat:'viewpoint',name:'莫林是法国公司，咖啡辅料品牌多为 10 亿左右营收的中小企业',note:'海外咖啡辅料市场格局'},
+{id:'v09',cat:'viewpoint',name:'Canva 月活有 9 个亿',note:'设计平台体量'},
+{id:'v10',cat:'viewpoint',name:'曦智（光计算）已上市',note:'光计算产业化进展'},
+{id:'v11',cat:'viewpoint',name:'字节出来的团队做了 Flova 和 oii oii',note:'字节系创业团队动态'},
+/* --- 人脉联络 --- */
+{id:'p01',cat:'people',name:'王学晖',note:'水木清华种子基金'},
+{id:'p02',cat:'people',name:'陶',note:'港中旅，下次可以约'},
+{id:'p03',cat:'people',name:'李若桃',note:'山东味可鲜，楼下酸奶'},
+{id:'p04',cat:'people',name:'Tang',note:'einsiaAI'},
+{id:'p05',cat:'people',name:'Ming Wu',note:'UC Berkeley，SiN MEMS，crossbar'},
+{id:'p06',cat:'people',name:'杨海霞',note:'mems 大神'},
+{id:'p07',cat:'people',name:'浙大老师（世界模型方向）',note:'浙大老师世界模型，具体姓名待确认'},
+{id:'p08',cat:'people',name:'谢霆锋',note:'锋味派：谦贞/英皇'},
+/* --- 技术主题 --- */
+{id:'t01',cat:'tech',name:'硅光方案：VCSEL vs GaN',note:'硅光方案，vcsel vs GaN'},
+{id:'t02',cat:'tech',name:'氮化硅波导',note:'氮化硅波导（光计算/光通信方向）'},
+{id:'t03',cat:'tech',name:'相变材料',note:'相变材料（光计算方向）'},
+{id:'t04',cat:'tech',name:'GPU 虚拟化提速与 SGLang',note:'GPU 的虚拟化提速需求。SGlang'},
+{id:'t05',cat:'tech',name:'世界模型',note:'浙大老师、astrocade 李飞飞方向'},
+{id:'t06',cat:'tech',name:'自由能原理',note:'自由能（模型/理论，待深入）'},
+{id:'t07',cat:'tech',name:'Stanford ESJ benchmark',note:'stanford ESJ bench'},
+{id:'t08',cat:'tech',name:'RSS 顶会与文章级别',note:'rss 的文章级别（机器人顶会）'},
+{id:'t09',cat:'tech',name:'MEMS 与 SiN crossbar',note:'北京赛微 mems 代工；Ming Wu（UC Berkeley）SiN Memes，crossbar；杨海霞'},
+{id:'t10',cat:'tech',name:'leaf-spine 网络架构',note:'英伟达 leaf 层，spy 层？（GPU 集群网络）'},
+{id:'t11',cat:'tech',name:'线粒体方向',note:'可拉因；线粒体'},
+{id:'t12',cat:'tech',name:'AKK 菌',note:'BioE？akk 菌；黄精'},
+{id:'t13',cat:'tech',name:'抖音用户分层 A1-A5',note:'抖音的用户分类 a1-a5'}
+];
+/* ===== 工具函数 ===== */
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const LS_KEY='workinfo_todo_state_v1';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtDate(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
+let toastTimer=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+function copyText(text){
+  const ok=()=>toast('提示词已复制，去豆包粘贴提问即可');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok).catch(()=>fallbackCopy(text,ok));}
+  else fallbackCopy(text,ok);
+}
+function fallbackCopy(text,ok){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');ok();}catch(e){toast('复制失败，请长按提示词框手动复制');}document.body.removeChild(ta);}
+
+/* ===== 状态管理 ===== */
+function freshState(){return{ver:1,done:{},summaries:{},extra:{},custom:[],tipDone:false};}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);if(!raw)return freshState();
+    const s=JSON.parse(raw),f=freshState();
+    ['done','summaries','extra'].forEach(k=>{if(s[k]&&typeof s[k]==='object')f[k]=s[k];});
+    if(Array.isArray(s.custom))f.custom=s.custom;
+    f.tipDone=!!s.tipDone;return f;
+  }catch(e){return freshState();}
+}
+let state=loadState();
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){toast('保存失败：浏览器存储不可用');}}
+function allItems(){return BASE.concat(state.custom);}
+function byId(id){return allItems().find(x=>x.id===id);}
+function isDone(it){return !!state.done[it.id];}
+function sumOf(it){return state.summaries[it.id]||null;}
+
+/* ===== 视图状态 ===== */
+const ui={cat:'company',status:'todo',sector:'all',q:''};
+const SECTOR_COLORS={'美妆个护':'#d6336c','AI/大模型':'#2f6bff','机器人':'#7c5cff','半导体/光通信':'#0a9e6e','食品供应链':'#e8890c','跨境品牌':'#0891b2','游戏/健身':'#e5484d','机构/平台':'#5b6478','其他':'#8892a6'};
+const CAT_TAG_COLORS={company:'#2f6bff',question:'#e8890c',viewpoint:'#0a9e6e',people:'#7c5cff',tech:'#5b6478'};
+function catName(c){return CAT_NAMES[c]||c;}
+function catTagHTML(it){const col=CAT_TAG_COLORS[it.cat]||'#2f6bff';return '<span class="tag" style="background:'+col+'14;color:'+col+'">'+esc(catName(it.cat))+'</span>';}
+function sectorTagHTML(it){const col=SECTOR_COLORS[it.sector]||'#8892a6';return '<span class="tag" style="background:'+col+'14;color:'+col+'">'+esc(it.sector)+'</span>';}
+
+/* ===== 渲染 ===== */
+function renderStats(){
+  const items=allItems(),done=items.filter(isDone).length;
+  const sumCnt=Object.keys(state.summaries).length;
+  $('#statText').textContent='共 '+items.length+' 项 · 已完成 '+done+' · 已存 AI 总结 '+sumCnt;
+  $('#progressBar').style.width=items.length?Math.round(done/items.length*100)+'%':'0%';
+}
+function renderChips(){
+  const counts={};allItems().forEach(i=>counts[i.cat]=(counts[i.cat]||0)+1);
+  const cats=[['all','全部'],['company','公司标的'],['question','待查事项'],['viewpoint','观点认知'],['people','人脉联络'],['tech','技术主题']];
+  $('#catChips').innerHTML=cats.map(c=>'<div class="chip '+(ui.cat===c[0]?'on':'')+'" data-cat="'+c[0]+'">'+c[1]+'<span class="n">'+(c[0]==='all'?allItems().length:counts[c[0]]||0)+'</span></div>').join('');
+  const sc=$('#sectorChips');
+  if(ui.cat==='company'){
+    sc.style.display='flex';
+    const cs=allItems().filter(i=>i.cat==='company');
+    let html='<div class="chip '+(ui.sector==='all'?'on':'')+'" data-sector="all">全部行业<span class="n">'+cs.length+'</span></div>';
+    SECTORS.forEach(s=>{const n=cs.filter(i=>(i.sector||'其他')===s).length;if(n)html+='<div class="chip '+(ui.sector===s?'on':'')+'" data-sector="'+esc(s)+'">'+esc(s)+'<span class="n">'+n+'</span></div>';});
+    sc.innerHTML=html;
+  }else{sc.style.display='none';}
+  const st=[['todo','待办'],['done','已完成'],['all','全部']];
+  $('#statusChips').innerHTML=st.map(s=>'<div class="chip '+(ui.status===s[0]?'on':'')+'" data-status="'+s[0]+'">'+s[1]+'</div>').join('');
+}
+function filteredItems(){
+  let arr=allItems();
+  if(ui.cat!=='all')arr=arr.filter(i=>i.cat===ui.cat);
+  if(ui.cat==='company'&&ui.sector!=='all')arr=arr.filter(i=>(i.sector||'其他')===ui.sector);
+  if(ui.status==='todo')arr=arr.filter(i=>!isDone(i));
+  else if(ui.status==='done')arr=arr.filter(i=>isDone(i));
+  if(ui.q){const q=ui.q.toLowerCase();arr=arr.filter(i=>{const s=sumOf(i);return (i.name+' '+(i.note||'')+' '+(i.sector||'')+' '+(s?s.content:'')+' '+(state.extra[i.id]||'')).toLowerCase().includes(q);});}
+  arr.sort((a,b)=>(isDone(a)?1:0)-(isDone(b)?1:0));
+  return arr;
+}
+const CHECK_SVG='<svg viewBox="0 0 12 12" fill="none"><path d="M2 6.2 4.8 9 10 3.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function cardHTML(it){
+  const done=isDone(it),s=sumOf(it);
+  return '<div class="card" data-id="'+it.id+'">'
+    +'<div class="cb '+(done?'on':'')+'" data-cb="'+it.id+'">'+CHECK_SVG+'</div>'
+    +'<div class="c-mid"><div class="c-name"><span class="txt '+(done?'done':'')+'">'+esc(it.name)+'</span>'
+    +(s?'<span class="tag sum">AI总结 '+s.content.length+'字</span>':'')
+    +(it.custom?'<span class="tag">自建</span>':'')
+    +'</div>'
+    +(it.note?'<div class="c-note">'+esc(it.note)+'</div>':'')
+    +'<div class="c-badges">'+catTagHTML(it)+(it.cat==='company'&&it.sector?sectorTagHTML(it):'')+'</div>'
+    +'</div><div class="chev">›</div></div>';
+}
+function renderList(){
+  const arr=filteredItems();
+  $('#listMeta').textContent='显示 '+arr.length+' 项'+(ui.q?' · 搜索“'+ui.q+'”':'');
+  $('#list').innerHTML=arr.length?arr.map(cardHTML).join(''):'<div class="empty">没有匹配的条目<br><button class="btn" id="emptyAdd">＋ 新增一条</button></div>';
+}
+function renderBanner(){$('#tipBanner').style.display=state.tipDone?'none':'flex';}
+function render(){renderStats();renderChips();renderList();renderBanner();}
+
+/* ===== 弹层管理 ===== */
+let activeSheet=null;
+function openSheet(id){
+  const el=$('#'+id);
+  if(activeSheet===id&&el.classList.contains('show'))return;
+  $('#overlay').classList.add('show');el.classList.add('show');
+  activeSheet=id;document.body.classList.add('lock');
+}
+function closeSheets(){
+  $$('.sheet').forEach(el=>el.classList.remove('show'));
+  $('#overlay').classList.remove('show');
+  activeSheet=null;document.body.classList.remove('lock');
+}
+$$('.sheet').forEach(sh=>{sh.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeSheets();});});
+$('#overlay').addEventListener('click',closeSheets);
+
+/* ===== AI 提示词生成 ===== */
+function buildPrompt(it){
+  const note=it.note||'';
+  if(it.cat==='company'){
+    return '我是一名早期投资机构的投资人，正在梳理会议纪要中的公司线索。请帮我调研公司「'+it.name+'」'+(it.sector?'（所属方向：'+it.sector+'）':'')+'。\n我目前掌握的线索：'+(note||'（暂无）')+'\n\n请输出结构化总结：\n1. 公司简介与主营业务\n2. 融资历史（轮次 / 时间 / 金额 / 投资方）\n3. 创始团队背景\n4. 产品与商业模式\n5. 竞争格局与对标公司\n6. 近期动态\n7. 早期投资视角：亮点与风险\n\n如果该公司名称可能记录有误，请指出最可能的正确名称，并基于正确名称进行调研。';
+  }
+  if(it.cat==='question'){
+    return '请帮我查证并解答以下来自会议交流的问题，输出结构化、有依据的答案，并标注信息来源：\n\n「'+it.name+'」\n\n补充背景：'+(note||'（无）');
+  }
+  if(it.cat==='viewpoint'){
+    return '请帮我核实并扩展以下来自行业交流的观点，补充数据、案例，以及反方视角：\n\n「'+it.name+'」\n\n补充背景：'+(note||'（无）');
+  }
+  if(it.cat==='people'){
+    return '请帮我整理这位人士的公开背景信息：\n\n姓名：'+it.name+'\n所属机构 / 线索：'+(note||'（无）')+'\n\n请包括：职业经历、所在机构与职务、公开观点或动态、可能的联系或合作渠道。若无公开信息，请如实说明。';
+  }
+  return '请帮我深入理解这个技术概念：\n\n「'+it.name+'」'+(note?'\n我的备注：'+note:'')+'\n\n请包括：基本原理、解决什么问题、应用场景、产业链上下游与代表公司、投资视角的机会与风险。';
+}
+
+/* ===== 详情弹层 ===== */
+let detailId=null;
+function openDetail(id){
+  const it=byId(id);if(!it)return;
+  const same=detailId===id&&$('#detailSheet').classList.contains('show');
+  detailId=id;
+  const s=sumOf(it),done=isDone(it);
+  $('#detailSheet').innerHTML=
+  '<div class="grab"></div>'
+  +'<div class="sheet-head"><div class="drow"><div class="tags">'+catTagHTML(it)+(it.cat==='company'&&it.sector?sectorTagHTML(it):'')+(done?'<span class="tag done-tag">已完成</span>':'')+'</div><button class="x" data-act="close">✕</button></div>'
+  +'<h2 class="sheet-h2">'+esc(it.name)+'</h2>'
+  +(it.note?'<div class="orig"><b>原始笔记</b>'+esc(it.note)+'</div>':'')
+  +'</div>'
+  +'<div class="sheet-body">'
+  +'<button class="btn wide '+(done?'':'pri')+'" data-act="toggle">'+(done?'取消完成':'✓ 标记为已完成')+'</button>'
+  +'<div class="sec"><div class="sec-title">AI 总结（用豆包等 AI 生成）</div>'
+  +'<div class="steps">流程：① 复制提示词 → ② 打开豆包粘贴提问 → ③ 复制 AI 回答 → ④ 回来粘贴保存</div>'
+  +'<textarea class="ta" id="promptBox" rows="7" spellcheck="false"></textarea>'
+  +'<div class="btnrow"><button class="btn pri" data-act="copy">复制提示词</button><a class="btn" href="https://www.doubao.com/chat/" target="_blank" rel="noopener">打开豆包 ↗</a></div>'
+  +'<div class="paste-label">④ 粘贴 AI 生成的总结'+(s?'（已于 '+esc(s.updatedAt)+' 保存）':'')+'</div>'
+  +'<textarea class="ta" id="summaryBox" rows="8" placeholder="把豆包返回的总结粘贴到这里，保存后会显示在卡片上…">'+(s?esc(s.content):'')+'</textarea>'
+  +'<div class="btnrow"><button class="btn pri" data-act="saveSum">'+(s?'更新总结':'保存总结')+'</button>'+(s?'<button class="btn danger" data-act="delSum">删除总结</button>':'')+'</div>'
+  +'</div>'
+  +'<div class="sec"><div class="sec-title">补充备注</div>'
+  +'<textarea class="ta" id="extraBox" rows="3" placeholder="记录自己的跟进情况、想法…">'+esc(state.extra[id]||'')+'</textarea>'
+  +'<div class="btnrow"><button class="btn" data-act="saveExtra">保存备注</button></div>'
+  +'</div>'
+  +(it.custom?'<div class="sec"><button class="btn danger wide" data-act="delItem">删除此条目</button></div>':'')
+  +'</div>';
+  $('#promptBox').value=buildPrompt(it);
+  openSheet('detailSheet');
+  if(!same)$('#detailSheet .sheet-body').scrollTop=0;
+}
+$('#detailSheet').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-act]');if(!btn)return;
+  const act=btn.dataset.act,id=detailId,it=byId(id);if(!it)return;
+  if(act==='close')closeSheets();
+  else if(act==='toggle'){if(state.done[id])delete state.done[id];else state.done[id]=true;save();render();openDetail(id);}
+  else if(act==='copy')copyText($('#promptBox').value);
+  else if(act==='saveSum'){
+    const v=$('#summaryBox').value.trim();
+    if(!v){toast('请先粘贴或输入总结内容');return;}
+    state.summaries[id]={content:v,updatedAt:fmtDate(Date.now())};
+    save();render();openDetail(id);toast('总结已保存');
+  }
+  else if(act==='delSum'){delete state.summaries[id];save();render();openDetail(id);toast('已删除总结');}
+  else if(act==='saveExtra'){const v=$('#extraBox').value.trim();if(v)state.extra[id]=v;else delete state.extra[id];save();toast('备注已保存');}
+  else if(act==='delItem'){if(confirm('确定删除「'+it.name+'」？')){state.custom=state.custom.filter(x=>x.id!==id);save();render();closeSheets();toast('已删除');}}
+});
+
+/* ===== 列表事件 ===== */
+$('#list').addEventListener('click',e=>{
+  const cb=e.target.closest('[data-cb]');
+  if(cb){const id=cb.dataset.cb;if(state.done[id])delete state.done[id];else state.done[id]=true;save();render();return;}
+  if(e.target.closest('#emptyAdd')){openAdd();return;}
+  const card=e.target.closest('.card');
+  if(card)openDetail(card.dataset.id);
+});
+$('#catChips').addEventListener('click',e=>{const c=e.target.closest('[data-cat]');if(!c)return;ui.cat=c.dataset.cat;ui.sector='all';render();});
+$('#sectorChips').addEventListener('click',e=>{const c=e.target.closest('[data-sector]');if(!c)return;ui.sector=c.dataset.sector;render();});
+$('#statusChips').addEventListener('click',e=>{const c=e.target.closest('[data-status]');if(!c)return;ui.status=c.dataset.status;render();});
+let searchTimer=null;
+$('#search').addEventListener('input',e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{ui.q=e.target.value.trim();renderList();},150);});
+
+/* ===== 新增条目 ===== */
+function syncSectorRow(){
+  const isCompany=$('#addCat').value==='company';
+  $('#sectorRow').style.display=isCompany?'block':'none';
+  if(!$('#addSector').options.length)$('#addSector').innerHTML=SECTORS.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+}
+function openAdd(){
+  $('#addCat').value=(ui.cat==='all'||CAT_NAMES[ui.cat])?ui.cat:'company';
+  if(!CAT_NAMES[$('#addCat').value])$('#addCat').value='company';
+  $('#addName').value='';$('#addNote').value='';
+  syncSectorRow();openSheet('addSheet');
+}
+$('#addCat').addEventListener('change',syncSectorRow);
+$('#btnAdd').addEventListener('click',openAdd);
+$('#addSave').addEventListener('click',()=>{
+  const name=$('#addName').value.trim();
+  if(!name){toast('请填写名称');return;}
+  const cat=$('#addCat').value;
+  const it={id:'u'+Date.now(),cat:cat,name:name,note:$('#addNote').value.trim(),custom:true};
+  if(cat==='company')it.sector=$('#addSector').value;
+  state.custom.push(it);save();
+  ui.cat=cat;ui.status='todo';ui.sector='all';ui.q='';$('#search').value='';
+  render();closeSheets();toast('已添加：'+name);
+});
+
+/* ===== 设置菜单 ===== */
+$('#btnMenu').addEventListener('click',()=>openSheet('menuSheet'));
+$('#menuSheet').addEventListener('click',e=>{
+  const b=e.target.closest('[data-menu]');if(!b)return;
+  const m=b.dataset.menu;
+  if(m==='export')exportData();
+  else if(m==='import')$('#importFile').click();
+  else if(m==='reset'){
+    if(confirm('确定重置？将清除所有勾选、AI 总结、备注和自建条目（原始条目不受影响）。')){
+      state=freshState();save();render();closeSheets();toast('已重置');
+    }
+  }
+});
+function exportData(){
+  const data={app:'workinfo-todo',exportedAt:new Date().toISOString(),state:state};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='工作信息待办备份-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('已导出备份文件');
+}
+$('#importFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      const st=data.state||data;
+      if(!st||typeof st!=='object'||(!('done' in st)&&!('custom' in st)))throw new Error('bad');
+      const hasData=Object.keys(state.done).length||Object.keys(state.summaries).length||state.custom.length;
+      if(hasData&&!confirm('导入将覆盖当前设备上的所有勾选、总结和备注，确定继续？')){e.target.value='';return;}
+      state=freshState();
+      ['done','summaries','extra'].forEach(k=>{if(st[k]&&typeof st[k]==='object')state[k]=st[k];});
+      if(Array.isArray(st.custom))state.custom=st.custom;
+      save();render();closeSheets();toast('导入成功');
+    }catch(err){toast('文件格式不正确，导入失败');}
+    e.target.value='';
+  };
+  r.readAsText(f);
+});
+
+/* ===== 提示条 ===== */
+$('#tipClose').addEventListener('click',()=>{state.tipDone=true;save();renderBanner();});
+
+/* ===== 启动 ===== */
+render();
+</script>
+</body>
+</html>
