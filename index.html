@@ -104,6 +104,13 @@ input[type=text]:focus{border-color:var(--pri)}
 /* ===== 提示 ===== */
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%) translateY(20px);background:rgba(27,35,51,.92);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:24px;opacity:0;transition:all .25s;z-index:99;pointer-events:none;max-width:80vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.ai-entry{margin-top:10px}
+#btnAI{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#2f6bff,#6a4dff);color:#fff;font-size:15px;font-weight:600;letter-spacing:.5px;cursor:pointer}
+#btnAI:active{opacity:.85}
+#aiPanel{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+#aiInput{width:100%;min-height:72px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;background:#fafbfd;box-sizing:border-box}
+.ai-panel-btns{display:flex;gap:10px;margin-top:10px}
+.ai-hint{margin-top:8px;font-size:12px;color:var(--sub);line-height:1.5}
 </style>
 </head>
 <body>
@@ -120,6 +127,14 @@ input[type=text]:focus{border-color:var(--pri)}
       </div>
     </div>
     <div class="progress"><i id="progressBar"></i></div>
+    <div class="ai-entry">
+      <button id="btnAI">✦ 使用 AI 查</button>
+      <div id="aiPanel" style="display:none">
+        <textarea id="aiInput" placeholder="输入想问 AI 的问题，如：用通俗的话解释什么是边缘计算"></textarea>
+        <div class="ai-panel-btns"><button class="btn pri" id="aiGo">去问豆包 ↗</button><button class="btn" id="aiCancel">收起</button></div>
+        <div class="ai-hint">将自动复制问题并打开豆包；若问题未自动填入，在豆包输入框粘贴（长按→粘贴）后发送即可。</div>
+      </div>
+    </div>
   </header>
   <main>
     <div class="search-wrap"><input id="search" type="text" placeholder="搜索公司 / 事项 / 已存总结…" autocomplete="off"></div>
@@ -539,6 +554,10 @@ function openAdd(){
 }
 $('#addCat').addEventListener('change',syncSectorRow);
 $('#btnAdd').addEventListener('click',openAdd);
+/* ===== 使用 AI 查 ===== */
+$('#btnAI').addEventListener('click',()=>{const p=$('#aiPanel');const show=p.style.display==='none';p.style.display=show?'block':'none';$('#btnAI').textContent=show?'✦ 收起 AI 查询':'✦ 使用 AI 查';if(show)setTimeout(()=>$('#aiInput').focus(),80);});
+$('#aiCancel').addEventListener('click',()=>{$('#aiPanel').style.display='none';$('#btnAI').textContent='✦ 使用 AI 查';});
+$('#aiGo').addEventListener('click',()=>{const q=$('#aiInput').value.trim();if(!q){toast('先输入想问的问题');return;}copyText(q);window.open('https://www.doubao.com/chat/create?q='+encodeURIComponent(q),'_blank');});
 $('#addSave').addEventListener('click',()=>{
   const name=$('#addName').value.trim();
   if(!name){toast('请填写名称');return;}
